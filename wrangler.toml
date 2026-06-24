@@ -1,0 +1,10 @@
+name = "day-planner"
+main = "worker.js"
+compatibility_date = "2026-06-24"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "5893812b1e8449c9881d40c7469169a9"
+
+[triggers]
+crons = ["0 14 * * 1-5"]   # ~08:00 America/Denver (weekdays)
