@@ -75,12 +75,13 @@ async function buildPlan(env, tasks, free, hours) {
   const prompt =
 `You are planning Jamie's working day. Today (MT): ${mtDateISO()}. Working window: ${hours.startH}:00-${hours.endH}:00.
 He has ${Math.round(free.totalMins)} minutes of free time today (gaps between meetings): ${free.slots.map(s=>s.label).join(", ") || "none mapped"}.
-Below are his open tasks. Choose and ORDER the ones he should do today so the total estimated effort fits his free time, prioritising by deadline (sooner = higher) then urgency. Give a realistic "estMins" per task. Keep it focused - quality over quantity.
+Below are his open tasks. Choose and ORDER the ones he should do today so the total estimated effort fits his free time, prioritising by deadline (sooner = higher) then urgency. Select AT MOST 12 tasks - the highest-priority that fit - and NEVER list more than 12. Give a realistic "estMins" per task. Keep it focused - quality over quantity.
 If the HIGH-PRIORITY tasks (near deadline / urgent) need MORE time than is free in the working window, set "overflow": true and list the overflow task ids in "overflowIds" - do not silently drop them.
 Return ONLY JSON: {"today":[{"id":"...","estMins":60,"why":"one short line"}],"overflow":false,"overflowIds":[],"summary":"1-2 sentence framing of the day"}
 Tasks: ${JSON.stringify(rows)}`;
-  let parsed;
-  try { parsed = JSON.parse(extractJson(await claude(env, prompt, 2000))); } catch (e) { parsed = { today: [], overflow: false }; }
+  let parsed, raw = "";
+  try { raw = await claude(env, prompt, 4000); parsed = JSON.parse(extractJson(raw)); }
+  catch (e) { parsed = { today: [], overflow: false, note: "Planner could not build a list this run (model output unparseable). Try Re-prioritise.", _parseErr: String(e), _raw: (raw || "").slice(0, 300) }; }
   const byId = new Map(tasks.map((t) => [t.ID, t]));
   parsed.today = (parsed.today || []).filter((x) => byId.has(x.id)).map((x) => ({ ...x, task: byId.get(x.id) }));
   parsed.overflowIds = (parsed.overflowIds || []).filter((id) => byId.has(id));
