@@ -98,8 +98,11 @@ async function postPlan(env, gtok, plan, free, hours) {
   const header = `*Your plan for ${mtDateLong()}*\nFree time today: *${freeH}h* (working ${hours.startH}:00-${hours.endH}:00).${plan.summary ? `\n${plan.summary}` : ""}`;
   const blocks = [{ type: "section", text: { type: "mrkdwn", text: header } }, { type: "divider" }];
 
+  const MAX_SHOW = 10;
+  const shown = plan.today.slice(0, MAX_SHOW);
+  const moreCount = plan.today.length - shown.length;
   let n = 0;
-  for (const item of plan.today) {
+  for (const item of shown) {
     n++;
     const t = item.task;
     const token = shortToken();
@@ -116,6 +119,7 @@ async function postPlan(env, gtok, plan, free, hours) {
     ] });
   }
 
+  if (moreCount > 0) blocks.push({ type: "context", elements: [{ type: "mrkdwn", text: `_+${moreCount} more lower-priority task(s) not shown - re-prioritise or clear some to surface them._` }] });
   blocks.push({ type: "divider" });
   const footer = [{ type: "button", text: { type: "plain_text", text: "Re-prioritise" }, action_id: "plan_replan", value: `${hours.startH}-${hours.endH}` }];
   if (plan.overflow && plan.overflowIds && plan.overflowIds.length) {
