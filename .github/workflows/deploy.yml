@@ -1,0 +1,42 @@
+name: Deploy day-planner Worker
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install wrangler
+        run: npm install
+      - name: Validate (dry-run)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler deploy --dry-run
+      - name: Deploy worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler deploy
+      - name: Set worker secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          SLACK_SIGNING_SECRET: ${{ secrets.SLACK_SIGNING_SECRET }}
+          GCP_SA_EMAIL: ${{ secrets.GCP_SA_EMAIL }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RUN_TOKEN: ${{ secrets.RUN_TOKEN }}
+        run: |
+          set -e
+          printf '%s' "$SLACK_BOT_TOKEN"      | npx wrangler secret put SLACK_BOT_TOKEN
+          printf '%s' "$SLACK_SIGNING_SECRET" | npx wrangler secret put SLACK_SIGNING_SECRET
+          printf '%s' "$GCP_SA_EMAIL"         | npx wrangler secret put GCP_SA_EMAIL
+          printf '%s' "$GCP_SA_KEY"           | npx wrangler secret put GCP_SA_KEY
+          printf '%s' "$ANTHROPIC_API_KEY"    | npx wrangler secret put ANTHROPIC_API_KEY
+          printf '%s' "$RUN_TOKEN"            | npx wrangler secret put RUN_TOKEN
