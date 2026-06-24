@@ -311,5 +311,15 @@ function extractJson(s) { const m = (s || "").match(/\{[\s\S]*\}/); return m ? m
 function shortToken() { return crypto.randomUUID().replace(/-/g, "").slice(0, 6); }
 function colLetter(i) { let s = ""; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; }
 function b64url(data) { const bytes = typeof data === "string" ? new TextEncoder().encode(data) : new Uint8Array(data); let bin = ""; bytes.forEach((b) => (bin += String.fromCharCode(b))); return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
-function pemToArr(pem) { const b64 = pem.replace(/-----[^-]+-----/g, "").replace(/\\n/g, "").replace(/\s/g, ""); const bin = atob(b64); const arr = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i); return arr.buffer; }
+function pemToArr(pem) {
+  let s = String(pem || "").trim();
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) s = s.slice(1, -1);
+  s = s.replace(/-----[A-Za-z0-9 ]+-----/g, ""); // strip BEGIN/END header lines
+  s = s.replace(/\\r/g, "").replace(/\\n/g, ""); // literal escaped newlines from JSON
+  s = s.replace(/[^A-Za-z0-9+/=]/g, ""); // keep only valid base64 chars (drops real newlines, quotes, stray backslashes)
+  const bin = atob(s);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return arr.buffer;
+}
 function noop() {}
